@@ -126,7 +126,7 @@ def fastalign_mock(text1, text2):
     for i in range(max(len(sentences1), len(sentences2))):
         s1 = sentences1[i] if i < len(sentences1) else ""
         s2 = sentences2[i] if i < len(sentences2) else ""
-        aligned_lines.append(f"{s1} ||| {s2}")
+        aligned_lines.append(f"{s1} | {s2}")
 
     return "Aligned text:\n" + "\n".join(aligned_lines)
 
@@ -144,10 +144,9 @@ def save_results():
 
     if file_path:
         if file_path.endswith(".csv"):
-            with open(file_path, "w", encoding="utf-8", newline="") as file:
-                writer = csv.writer(file)
-                rows = [line.split(" ||| ") for line in
-                        output_text.split("\n")[1:]]
+            with open(file_path, "w", encoding="utf-8-sig", newline="") as file:
+                writer = csv.writer(file, delimiter=";")  # Используем ";" вместо "|"
+                rows = [line.split(" | ") for line in output_text.split("\n")[1:]]
                 writer.writerows(rows)
         else:
             with open(file_path, "w", encoding="utf-8") as file:
