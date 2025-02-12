@@ -9,6 +9,11 @@ from nltk.stem import WordNetLemmatizer, PorterStemmer
 from nltk import pos_tag
 import spacy
 import subprocess
+from rake_nltk import Rake
+import yake
+
+# Global variable for stop words / Globálna premenná pre stop slová
+stop_words_extract = None
 
 # Loading necessary NLTK data / Načítanie potrebných údajov NLTK
 nltk.download('punkt')
@@ -49,7 +54,9 @@ translations = {
         "no_output_to_save": "There is no output to save.",
         "save_success": "The results are saved in {file_path}",
         "save_error": "The file could not be saved",
-        "align_text": "📏 Align Text"
+        "align_text": "📏 Align Text",
+        "extract_keywords": "🔑 Extract Keywords",
+        "extract_keyphrases": "🔑 Extract Keyphrases"
     },
     "Slovak": {
         "exit": "❌",
@@ -73,7 +80,9 @@ translations = {
         "no_output_to_save": "Nie je čo uložiť.",
         "save_success": "Výsledky sú uložené v {file_path}",
         "save_error": "Súbor sa nepodarilo uložiť",
-        "align_text": "📏 Zarovnať text"
+        "align_text": "📏 Zarovnať text",
+        "extract_keywords": "🔑 Extrahovať kľúčové slová",
+        "extract_keyphrases": "🔑 Extrahovať kľúčové frázy"
     }
 }
 
@@ -99,6 +108,8 @@ def update_ui_language():
     btn_default.config(text=lang["default"])
     btn_clear_text.config(text=lang["clear_text"])
     btn_align_text.config(text=lang["align_text"])
+    btn_extract_keywords.config(text=lang["extract_keywords"])
+    btn_extract_keyphrases.config(text=lang["extract_keyphrases"])
     if text_input.get("1.0", tk.END).strip() == translations["English"]["instructions"]:
         text_input.delete("1.0", tk.END)
         text_input.insert("1.0", translations[current_language]["instructions"])
@@ -115,6 +126,54 @@ def open_align_window():
 # --- Button to exit the application / Tlačidlo na výstup z aplikácie ---
 def exit_application():
     window.quit()
+
+# Keyword extraction function / Funkcia extrakcie kľúčových slov
+def extract_keywords(text):
+    global stop_words_extract
+    if stop_words_extract is None:
+        nltk.download("stopwords")
+        nltk.download("punkt")
+        stop_words_extract = set(stopwords.words("english"))
+
+    r = Rake(language="english")
+    r.extract_keywords_from_text(text)
+    words = set()
+    for phrase in r.get_ranked_phrases():
+        for word in phrase.split():
+            if word.lower() not in stop_words_extract:
+                words.add(word.lower())
+    return list(words)[:10]
+
+# Keyphrase extraction function / Funkcia extrakcie kľúčových fráz
+def extract_keyphrases(text):
+    yake_extractor = yake.KeywordExtractor(
+        lan="en",
+        n=3,
+        dedupLim=0.7,
+        top=10
+    )
+    keyphrases = [kw[0] for kw in yake_extractor.extract_keywords(text)]
+    return [phrase for phrase in keyphrases if len(phrase.split()) > 1]
+
+def extract_keywords_ui():
+    input_text = text_input.get("1.0", tk.END).strip()
+    if not input_text:
+        messagebox.showerror("Error", "Please enter some text to extract keywords.")
+        return
+
+    keywords = extract_keywords(input_text)
+    text_output.delete("1.0", tk.END)
+    text_output.insert(tk.END, "Keywords:\n" + ", ".join(keywords))
+
+def extract_keyphrases_ui():
+    input_text = text_input.get("1.0", tk.END).strip()
+    if not input_text:
+        messagebox.showerror("Error", "Please enter some text to extract keyphrases.")
+        return
+
+    keyphrases = extract_keyphrases(input_text)
+    text_output.delete("1.0", tk.END)
+    text_output.insert(tk.END, "Keyphrases:\n" + "\n".join(keyphrases))
 
 # --- Text processing functions / Funkcie spracovania textu ---
 def clean_text(text, remove_urls=False):
@@ -348,6 +407,12 @@ btn_align_text.grid(row=1, column=2, padx=5, pady=5)
 
 btn_save = tk.Button(buttons_frame, text="", command=save_results, bg="#add8e6", font=("Arial", 10))
 btn_save.grid(row=2, column=1, padx=5, pady=10)
+
+btn_extract_keywords = tk.Button(buttons_frame, text="🔑 Extract Keywords", command=extract_keywords_ui, bg="#90ee90", font=("Arial", 10))
+btn_extract_keywords.grid(row=2, column=0, padx=5, pady=5)
+
+btn_extract_keyphrases = tk.Button(buttons_frame, text="🔑 Extract Keyphrases", command=extract_keyphrases_ui, bg="#90ee90", font=("Arial", 10))
+btn_extract_keyphrases.grid(row=2, column=2, padx=5, pady=5)
 
 # Text output area / Oblasť pre výstup textu
 text_output_label = tk.Label(window, text="", font=("Arial", 12, "bold"), bg="#f0f8ff")
