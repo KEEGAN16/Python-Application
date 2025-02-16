@@ -1,5 +1,5 @@
 import tkinter as tk
-from tkinter import filedialog, messagebox, simpledialog
+from tkinter import filedialog, messagebox, simpledialog, ttk
 import pandas as pd
 import nltk
 import re
@@ -11,15 +11,17 @@ import spacy
 import subprocess
 from rake_nltk import Rake
 import yake
+import threading
+import gc
 
 # Global variable for stop words / Globálna premenná pre stop slová
 stop_words_extract = None
 
-# Loading necessary NLTK data / Načítanie potrebných údajov NLTK
+# Loading necessary NLTK data
 nltk.download('punkt')
 nltk.download('stopwords')
 nltk.download('wordnet')
-nltk.download('averaged_perceptron_tagger')
+nltk.download('averged_perceptron_tagger')
 
 # Loading the spaCy model / Načítanie modelu spaCy
 nlp = spacy.load("en_core_web_sm")
@@ -29,8 +31,7 @@ lemmatizer = WordNetLemmatizer()
 stemmer = PorterStemmer()
 stop_words = set(stopwords.words('english'))
 
-# --- Variables for switching language / Premenné na prepínanie jazyka ---
-# Dictionaries for texts in different languages / Slovníky pre texty v rôznych jazykoch
+# Translations dictionary / Prekladový slovník
 translations = {
     "English": {
         "exit": "❌",
@@ -89,8 +90,8 @@ translations = {
 # Current language / Aktuálny jazyk
 current_language = "English"
 
+# Function to update UI language / Funkcia na aktualizáciu jazyka používateľského rozhrania
 def update_ui_language():
-    # Updating the interface text to the selected language / Aktualizácia textu rozhrania na vybraný jazyk
     lang = translations[current_language]
     btn_exit.config(text=lang["exit"])
     btn_toggle_language.config(text=lang["toggle_language"])
@@ -114,25 +115,24 @@ def update_ui_language():
         text_input.delete("1.0", tk.END)
         text_input.insert("1.0", translations[current_language]["instructions"])
 
+# Function to toggle language / Funkcia na prepínanie jazyka
 def toggle_language():
-    # Switching between English and Slovak languages / Prepnúť medzi anglickým a slovenským jazykom
     global current_language
     current_language = "Slovak" if current_language == "English" else "English"
     update_ui_language()
 
+# Function to open align window / Funkcia na otvorenie okna zarovnania
 def open_align_window():
     subprocess.Popen(["python", "align_text_window.py"])
 
-# --- Button to exit the application / Tlačidlo na výstup z aplikácie ---
+# Function to exit application / Funkcia na ukončenie aplikácie
 def exit_application():
     window.quit()
 
-# Keyword extraction function / Funkcia extrakcie kľúčových slov
+# Function to extract keywords / Funkcia na extrakciu kľúčových slov
 def extract_keywords(text):
     global stop_words_extract
     if stop_words_extract is None:
-        nltk.download("stopwords")
-        nltk.download("punkt")
         stop_words_extract = set(stopwords.words("english"))
 
     r = Rake(language="english")
@@ -144,7 +144,7 @@ def extract_keywords(text):
                 words.add(word.lower())
     return list(words)[:10]
 
-# Keyphrase extraction function / Funkcia extrakcie kľúčových fráz
+# Function to extract keyphrases / Funkcia na extrakciu kľúčových fráz
 def extract_keyphrases(text):
     yake_extractor = yake.KeywordExtractor(
         lan="en",
@@ -155,6 +155,7 @@ def extract_keyphrases(text):
     keyphrases = [kw[0] for kw in yake_extractor.extract_keywords(text)]
     return [phrase for phrase in keyphrases if len(phrase.split()) > 1]
 
+# Function to handle keyword extraction UI / Funkcia na obsluhu UI pre extrakciu kľúčových slov
 def extract_keywords_ui():
     input_text = text_input.get("1.0", tk.END).strip()
     if not input_text:
@@ -165,6 +166,7 @@ def extract_keywords_ui():
     text_output.delete("1.0", tk.END)
     text_output.insert(tk.END, "Keywords:\n" + ", ".join(keywords))
 
+# Function to handle keyphrase extraction UI / Funkcia na obsluhu UI pre extrakciu kľúčových fráz
 def extract_keyphrases_ui():
     input_text = text_input.get("1.0", tk.END).strip()
     if not input_text:
@@ -175,13 +177,14 @@ def extract_keyphrases_ui():
     text_output.delete("1.0", tk.END)
     text_output.insert(tk.END, "Keyphrases:\n" + "\n".join(keyphrases))
 
-# --- Text processing functions / Funkcie spracovania textu ---
+# Function to clean text / Funkcia na čistenie textu
 def clean_text(text, remove_urls=False):
     if remove_urls:
         text = re.sub(r'http[s]?://\S+|www\.\S+', '', text)
     text = re.sub(r'[^a-zA-Z\s]', '', text)
     return text.lower()
 
+# Function to tokenize text / Funkcia na tokenizáciu textu
 def tokenize_text():
     input_text = text_input.get("1.0", tk.END)
     input_text = clean_text(input_text, var_remove_urls.get())
@@ -193,6 +196,7 @@ def tokenize_text():
     text_output.delete("1.0", tk.END)
     text_output.insert(tk.END, "Tokens:\n" + ", ".join(tokens))
 
+# Function to segment text / Funkcia na segmentáciu textu
 def segment_text():
     input_text = text_input.get("1.0", tk.END)
     input_text = clean_text(input_text, var_remove_urls.get())
@@ -204,6 +208,7 @@ def segment_text():
     text_output.delete("1.0", tk.END)
     text_output.insert(tk.END, "Sentences:\n" + "\n".join(sentences))
 
+# Function to get POS tags / Funkcia na získanie POS značiek
 def pos_tags():
     input_text = text_input.get("1.0", tk.END)
     input_text = clean_text(input_text, var_remove_urls.get())
@@ -212,24 +217,21 @@ def pos_tags():
     text_output.delete("1.0", tk.END)
     text_output.insert(tk.END, "POS Tags:\n" + "\n".join(result))
 
+# Function to normalize text / Funkcia na normalizáciu textu
 def normalize_text():
     input_text = text_input.get("1.0", tk.END).strip()
     if not input_text:
         return
 
     input_text = clean_text(input_text)
-
     tokens = word_tokenize(input_text)
-
     tokens = [token for token in tokens if token.lower() not in stop_words]
-
     pos_tags = pos_tag(tokens)
-
     normalized_tokens = [lemmatizer.lemmatize(token, get_wordnet_pos(pos)) for token, pos in pos_tags]
-
     text_output.delete("1.0", tk.END)
     text_output.insert(tk.END, "Normalized Text:\n" + " ".join(normalized_tokens))
 
+# Function to lemmatize or stem text / Funkcia na lematizáciu alebo stemming textu
 def lemmatize_or_stem_text():
     input_text = text_input.get("1.0", tk.END)
     input_text = clean_text(input_text, var_remove_urls.get())
@@ -260,7 +262,7 @@ def lemmatize_or_stem_text():
     text_output.delete("1.0", tk.END)
     text_output.insert(tk.END, f"{technique} Result:\n" + ", ".join(processed_tokens))
 
-
+# Function to get WordNet POS tag / Funkcia na získanie WordNet POS značky
 def get_wordnet_pos(treebank_tag):
     tag_dict = {
         "J": wordnet.ADJ,
@@ -270,22 +272,30 @@ def get_wordnet_pos(treebank_tag):
     }
     return tag_dict.get(treebank_tag[0].upper(), wordnet.NOUN)
 
+# Function to upload file / Funkcia na nahranie súboru
 def upload_file():
     file_path = filedialog.askopenfilename(filetypes=[("Text files", "*.txt"), ("CSV files", "*.csv")])
     if not file_path:
         return
     try:
         if file_path.endswith(".csv"):
-            data = pd.read_csv(file_path)
+            first_chunk = pd.read_csv(file_path, nrows=1)
             column = simpledialog.askstring(
                 "Column Selection",
-                translations[current_language]["column_selection"].format(columns=", ".join(data.columns))
+                translations[current_language]["column_selection"].format(columns=", ".join(first_chunk.columns))
             )
-            if column not in data.columns:
+            if column not in first_chunk.columns:
                 messagebox.showerror("Error", translations[current_language]["invalid_column"])
                 return
+
+            data = pd.read_csv(file_path, chunksize=5000, usecols=[column])
+            text_data = []
+            for chunk in data:
+                text_data.append(" ".join(chunk[column].astype(str)))
+
             text_input.delete("1.0", tk.END)
-            text_input.insert(tk.END, " ".join(data[column].astype(str)))
+            text_input.insert(tk.END, " ".join(text_data))
+
         elif file_path.endswith(".txt"):
             with open(file_path, "r", encoding="utf-8") as file:
                 text_input.delete("1.0", tk.END)
@@ -295,6 +305,26 @@ def upload_file():
     except Exception as e:
         messagebox.showerror("Error", f"{translations[current_language]['file_error']}: {e}")
 
+# Function to process text / Funkcia na spracovanie textu
+def some_processing_function(text):
+    return text.upper()
+
+# Function to process text asynchronously / Funkcia na spracovanie textu asynchrónne
+def process_text():
+    progress.start()
+    large_text = text_input.get("1.0", tk.END)
+    processed_text = some_processing_function(large_text)
+    text_output.delete("1.0", tk.END)
+    text_output.insert(tk.END, processed_text)
+    progress.stop()
+    gc.collect()
+
+# Function to process text asynchronously / Funkcia na spracovanie textu asynchrónne
+def process_text_async():
+    thread = threading.Thread(target=process_text)
+    thread.start()
+
+# Function to save results / Funkcia na uloženie výsledkov
 def save_results():
     output_text = text_output.get("1.0", tk.END)
     if not output_text.strip():
@@ -313,41 +343,38 @@ def save_results():
     except Exception as e:
         messagebox.showerror("Error", f"{translations[current_language]['save_error']}: {e}")
 
+# Function to use default text / Funkcia na použitie predvoleného textu
 def use_default_text():
     default_text = "Natural Language Processing enables machines to understand and  respond to text just like humans."
     text_input.delete("1.0", tk.END)
     text_input.insert(tk.END, default_text)
 
-# --- Button to switch language in the settings section / Tlačidlo na prepnutie jazyka v sekcii nastavení ---
+# Function to toggle language settings / Funkcia na prepínanie nastavení jazyka
 def toggle_language_settings():
     toggle_language()
 
-# Adding a button to clear the text input field / Pridanie tlačidla na vyčistenie textového poľa pre vstup
+# Function to clear text input / Funkcia na vyčistenie textového vstupu
 def clear_text_input():
     text_input.delete("1.0", tk.END)
 
-# --- Creating the interface / Vytváranie rozhrania ---
+# Setup UI / Nastavenie UI
 window = tk.Tk()
 window.title("Text Processing Application")
 window.geometry("700x680")
 window.configure(bg="#f0f8ff")
 
-# Application logo / Logo aplikácie
 logo_label = tk.Label(window, text="📘 Text Processor", font=("Arial", 18, "bold"), bg="#f0f8ff", fg="#4682b4")
 logo_label.pack(pady=5, anchor="center")
 
 btn_exit = tk.Button(window, text="", command=exit_application, bg="#ff6961", font=("Arial", 10))
 btn_exit.place(relx=1, rely=0, anchor="ne", x=-10, y=10)
 
-# Instructions / Inštrukcie
 instructions_label = tk.Label(window, text="", bg="#f0f8ff", font=("Arial", 12))
 instructions_label.pack(pady=5)
 
-# Text input area / Oblasť pre vstup textu
 text_input = tk.Text(window, height=8, width=70, wrap="word", font=("Arial", 10))
 text_input.pack(pady=5)
 
-# Buttons for loading and default text / Tlačidlá na načítanie a predvolený text
 file_buttons_frame = tk.Frame(window, bg="#f0f8ff")
 file_buttons_frame.pack(pady=5)
 
@@ -360,7 +387,6 @@ btn_default.grid(row=0, column=1, padx=5)
 btn_clear_text = tk.Button(file_buttons_frame, text="🗑 Clear Text", command=clear_text_input, bg="#ff6666", font=("Arial", 10))
 btn_clear_text.grid(row=0, column=2, padx=5)
 
-# Settings section / Sekcia nastavení
 settings_frame = tk.LabelFrame(window, text="", bg="#e0ffff", font=("Arial", 12, "bold"), fg="#4682b4")
 settings_frame.pack(pady=8, fill="x")
 
@@ -372,18 +398,15 @@ var_remove_stopwords = tk.BooleanVar()
 remove_stopwords_checkbox = tk.Checkbutton(settings_frame, text="", variable=var_remove_stopwords, bg="#e0ffff")
 remove_stopwords_checkbox.pack(side=tk.LEFT, padx=10)
 
-# Dropdown menu for selecting text processing technique / Rozbaľovacie menu na výber techniky spracovania textu
 technique_choice = tk.StringVar()
 technique_choice.set("None")
 technique_menu = tk.OptionMenu(settings_frame, technique_choice, "None", "Lemmatization", "Stemming")
 technique_menu.config(bg="#add8e6", font=("Arial", 10))
 technique_menu.pack(side=tk.LEFT, padx=5)
 
-# Raised button for switching the language / Vyvýšené tlačidlo na prepínanie jazyka
 btn_toggle_language = tk.Button(settings_frame, text="", command=toggle_language_settings, bg="#add8e6", font=("Arial", 10))
 btn_toggle_language.pack(side=tk.LEFT, padx=10, pady=5)
 
-# Main buttons for processing / Hlavné tlačidlá na spracovanie
 buttons_frame = tk.Frame(window, bg="#f0f8ff")
 buttons_frame.pack(pady=5)
 
@@ -414,13 +437,14 @@ btn_extract_keywords.grid(row=2, column=0, padx=5, pady=5)
 btn_extract_keyphrases = tk.Button(buttons_frame, text="🔑 Extract Keyphrases", command=extract_keyphrases_ui, bg="#90ee90", font=("Arial", 10))
 btn_extract_keyphrases.grid(row=2, column=2, padx=5, pady=5)
 
-# Text output area / Oblasť pre výstup textu
 text_output_label = tk.Label(window, text="", font=("Arial", 12, "bold"), bg="#f0f8ff")
 text_output_label.pack(pady=5)
 
 text_output = tk.Text(window, height=10, width=70, wrap="word", font=("Arial", 10), state="normal")
 text_output.pack(pady=5)
 
-# Launching the application / Spustenie aplikácie
+progress = ttk.Progressbar(window, orient="horizontal", length=300, mode="indeterminate")
+progress.pack(pady=5)
+
 update_ui_language()
 window.mainloop()
