@@ -21,7 +21,7 @@ stop_words_extract = None
 nltk.download('punkt')
 nltk.download('stopwords')
 nltk.download('wordnet')
-nltk.download('averged_perceptron_tagger')
+nltk.download('averaged_perceptron_tagger')
 
 # Loading the spaCy model / Načítanie modelu spaCy
 nlp = spacy.load("en_core_web_sm")
@@ -35,7 +35,6 @@ stop_words = set(stopwords.words('english'))
 translations = {
     "English": {
         "exit": "❌",
-        "toggle_language": "Switch to Slovak",
         "instructions": "Instructions: Enter text below or upload a file to begin processing.",
         "output": "Output:",
         "settings": "Settings",
@@ -57,11 +56,16 @@ translations = {
         "save_error": "The file could not be saved",
         "align_text": "📏 Align Text",
         "extract_keywords": "🔑 Extract Keywords",
-        "extract_keyphrases": "🔑 Extract Keyphrases"
+        "extract_keyphrases": "🔑 Extract Keyphrases",
+        "num_keywords": "Number of Keywords:",
+        "num_keyphrases": "Number of Keyphrases:",
+        "error": "Error",
+        "no_text_error": "Please enter some text to extract keywords/keyphrases.",
+        "keywords_output": "Keywords",
+        "keyphrases_output": "Keyphrases"
     },
     "Slovak": {
         "exit": "❌",
-        "toggle_language": "Prepnúť na angličtinu",
         "instructions": "Pokyny: Zadajte text nižšie alebo nahrajte súbor na spracovanie.",
         "output": "Výstup:",
         "settings": "Nastavenia",
@@ -83,7 +87,13 @@ translations = {
         "save_error": "Súbor sa nepodarilo uložiť",
         "align_text": "📏 Zarovnať text",
         "extract_keywords": "🔑 Extrahovať kľúčové slová",
-        "extract_keyphrases": "🔑 Extrahovať kľúčové frázy"
+        "extract_keyphrases": "🔑 Extrahovať kľúčové frázy",
+        "num_keywords": "Počet kľúčových slov:",
+        "num_keyphrases": "Počet kľúčových fráz:",
+        "error": "Chyba",
+        "no_text_error": "Zadajte text pre extrakciu kľúčových slov/fráz.",
+        "keywords_output": "Kľúčové slová",
+        "keyphrases_output": "Kľúčové frázy"
     }
 }
 
@@ -94,7 +104,6 @@ current_language = "English"
 def update_ui_language():
     lang = translations[current_language]
     btn_exit.config(text=lang["exit"])
-    btn_toggle_language.config(text=lang["toggle_language"])
     instructions_label.config(text=lang["instructions"])
     text_output_label.config(text=lang["output"])
     settings_frame.config(text=lang["settings"])
@@ -130,7 +139,7 @@ def exit_application():
     window.quit()
 
 # Function to extract keywords / Funkcia na extrakciu kľúčových slov
-def extract_keywords(text):
+def extract_keywords(text, num_keywords=10):
     global stop_words_extract
     if stop_words_extract is None:
         stop_words_extract = set(stopwords.words("english"))
@@ -142,15 +151,15 @@ def extract_keywords(text):
         for word in phrase.split():
             if word.lower() not in stop_words_extract:
                 words.add(word.lower())
-    return list(words)[:10]
+    return list(words)[:num_keywords]
 
 # Function to extract keyphrases / Funkcia na extrakciu kľúčových fráz
-def extract_keyphrases(text):
+def extract_keyphrases(text, num_keyphrases=10):
     yake_extractor = yake.KeywordExtractor(
         lan="en",
         n=3,
         dedupLim=0.7,
-        top=10
+        top=num_keyphrases
     )
     keyphrases = [kw[0] for kw in yake_extractor.extract_keywords(text)]
     return [phrase for phrase in keyphrases if len(phrase.split()) > 1]
@@ -159,23 +168,31 @@ def extract_keyphrases(text):
 def extract_keywords_ui():
     input_text = text_input.get("1.0", tk.END).strip()
     if not input_text:
-        messagebox.showerror("Error", "Please enter some text to extract keywords.")
+        messagebox.showerror(translations[current_language]["error"], translations[current_language]["no_text_error"])
         return
 
-    keywords = extract_keywords(input_text)
+    num_keywords = simpledialog.askinteger("Input", translations[current_language]["num_keywords"], minvalue=1, maxvalue=50)
+    if num_keywords is None:
+        return
+
+    keywords = extract_keywords(input_text, num_keywords)
     text_output.delete("1.0", tk.END)
-    text_output.insert(tk.END, "Keywords:\n" + ", ".join(keywords))
+    text_output.insert(tk.END, translations[current_language]["keywords_output"] + ":\n" + ", ".join(keywords))
 
 # Function to handle keyphrase extraction UI / Funkcia na obsluhu UI pre extrakciu kľúčových fráz
 def extract_keyphrases_ui():
     input_text = text_input.get("1.0", tk.END).strip()
     if not input_text:
-        messagebox.showerror("Error", "Please enter some text to extract keyphrases.")
+        messagebox.showerror(translations[current_language]["error"], translations[current_language]["no_text_error"])
         return
 
-    keyphrases = extract_keyphrases(input_text)
+    num_keyphrases = simpledialog.askinteger("Input", translations[current_language]["num_keyphrases"], minvalue=1, maxvalue=50)
+    if num_keyphrases is None:
+        return
+
+    keyphrases = extract_keyphrases(input_text, num_keyphrases)
     text_output.delete("1.0", tk.END)
-    text_output.insert(tk.END, "Keyphrases:\n" + "\n".join(keyphrases))
+    text_output.insert(tk.END, translations[current_language]["keyphrases_output"] + ":\n" + "\n".join(keyphrases))
 
 # Function to clean text / Funkcia na čistenie textu
 def clean_text(text, remove_urls=False):
@@ -311,12 +328,10 @@ def some_processing_function(text):
 
 # Function to process text asynchronously / Funkcia na spracovanie textu asynchrónne
 def process_text():
-    progress.start()
     large_text = text_input.get("1.0", tk.END)
     processed_text = some_processing_function(large_text)
     text_output.delete("1.0", tk.END)
     text_output.insert(tk.END, processed_text)
-    progress.stop()
     gc.collect()
 
 # Function to process text asynchronously / Funkcia na spracovanie textu asynchrónne
@@ -345,7 +360,14 @@ def save_results():
 
 # Function to use default text / Funkcia na použitie predvoleného textu
 def use_default_text():
-    default_text = "Natural Language Processing enables machines to understand and  respond to text just like humans."
+    default_text = """    Natural Language Processing (NLP) is a subfield of artificial intelligence that focuses on the interaction between computers and human language. It enables machines to understand, interpret, generate, and respond to text in a way that is similar to human communication.
+
+    NLP is widely used in applications such as machine translation, sentiment analysis, text summarization, chatbots, and speech recognition. Modern NLP techniques often leverage deep learning models, such as transformers, to process large amounts of text data efficiently.
+
+    One of the key challenges in NLP is understanding context, as words and phrases can have different meanings depending on their usage. Techniques like tokenization, named entity recognition (NER), and part-of-speech (POS) tagging help machines better analyze and process language.
+
+    With continuous advancements, NLP is transforming industries by enabling more efficient data processing, automation, and improved human-computer interaction.
+    """
     text_input.delete("1.0", tk.END)
     text_input.insert(tk.END, default_text)
 
@@ -360,7 +382,7 @@ def clear_text_input():
 # Setup UI / Nastavenie UI
 window = tk.Tk()
 window.title("Text Processing Application")
-window.geometry("700x680")
+window.geometry("700x700")
 window.configure(bg="#f0f8ff")
 
 logo_label = tk.Label(window, text="📘 Text Processor", font=("Arial", 18, "bold"), bg="#f0f8ff", fg="#4682b4")
@@ -404,7 +426,7 @@ technique_menu = tk.OptionMenu(settings_frame, technique_choice, "None", "Lemmat
 technique_menu.config(bg="#add8e6", font=("Arial", 10))
 technique_menu.pack(side=tk.LEFT, padx=5)
 
-btn_toggle_language = tk.Button(settings_frame, text="", command=toggle_language_settings, bg="#add8e6", font=("Arial", 10))
+btn_toggle_language = tk.Button(settings_frame, text="SK/EN", command=toggle_language_settings, bg="#add8e6", font=("Arial", 10))
 btn_toggle_language.pack(side=tk.LEFT, padx=10, pady=5)
 
 buttons_frame = tk.Frame(window, bg="#f0f8ff")
@@ -442,9 +464,6 @@ text_output_label.pack(pady=5)
 
 text_output = tk.Text(window, height=10, width=70, wrap="word", font=("Arial", 10), state="normal")
 text_output.pack(pady=5)
-
-progress = ttk.Progressbar(window, orient="horizontal", length=300, mode="indeterminate")
-progress.pack(pady=5)
 
 update_ui_language()
 window.mainloop()
