@@ -20,7 +20,7 @@ translations = {
         "error_no_text": "Enter text or load files.",
         "error_no_data": "No data to save.",
         "success_save": "Results saved successfully!",
-        "language_button": "Switch to Slovak"
+        "language_button": "SK/EN"
     },
     "Slovak": {
         "title": "TextAlign UI",
@@ -36,7 +36,7 @@ translations = {
         "error_no_text": "Zadajte text alebo načítajte súbory.",
         "error_no_data": "Nie sú žiadne dáta na uloženie.",
         "success_save": "Výsledky boli úspešne uložené!",
-        "language_button": "Prepnúť na angličtinu"
+        "language_button": "SK/EN"
     }
 }
 
@@ -155,10 +155,21 @@ def save_results():
         messagebox.showinfo(translations[current_language]["success_save"],
                             translations[current_language]["success_save"])
 
+# Default texts for alignment / Predvolené texty na zarovnanie
+DEFAULT_TEXT_1 = "The quick brown fox jumps over the lazy dog. This sentence contains all the letters of the English alphabet. It is often used for typing practice."
+DEFAULT_TEXT_2 = "Rýchly hnedý líška preskočí cez lenivého psa. Táto veta obsahuje všetky písmená anglickej abecedy. Často sa používa na nácvik písania."
+
+def insert_default_text():
+    text_input1.delete("1.0", tk.END)
+    text_input1.insert(tk.END, DEFAULT_TEXT_1)
+
+    text_input2.delete("1.0", tk.END)
+    text_input2.insert(tk.END, DEFAULT_TEXT_2)
+
 # === UI Settings / Nastavenia používateľského rozhrania ===
 window = tk.Tk()
 window.title("TextAlign UI")
-window.geometry("700x750")
+window.geometry("700x785")
 window.configure(bg="#f0f0f0")
 
 style = ttk.Style()
@@ -194,6 +205,10 @@ entry_file2 = ttk.Entry(file_frame, width=50)
 entry_file2.grid(row=1, column=1, padx=5, pady=5)
 browse_button2 = ttk.Button(file_frame, text="Browse", command=lambda: load_file(entry_file2, text_input2))
 browse_button2.grid(row=1, column=2, padx=5, pady=5)
+
+# === Button to insert default text (Moved here) / Tlačidlo na vloženie predvoleného textu ===
+default_text_button = ttk.Button(main_frame, text="Use Default Text", command=insert_default_text)
+default_text_button.pack(pady=5)
 
 # === Manual Text Input / Ručný vstup textu ===
 text_frame = ttk.Frame(main_frame)
