@@ -20,7 +20,8 @@ translations = {
         "error_no_text": "Enter text or load files.",
         "error_no_data": "No data to save.",
         "success_save": "Results saved successfully!",
-        "language_button": "SK/EN"
+        "language_button": "SK/EN",
+        "default_text_button": "Use Default Text"
     },
     "Slovak": {
         "title": "TextAlign UI",
@@ -36,7 +37,8 @@ translations = {
         "error_no_text": "Zadajte text alebo načítajte súbory.",
         "error_no_data": "Nie sú žiadne dáta na uloženie.",
         "success_save": "Výsledky boli úspešne uložené!",
-        "language_button": "SK/EN"
+        "language_button": "SK/EN",
+        "default_text_button": "Použiť predvolený text"
     }
 }
 
@@ -58,6 +60,7 @@ def update_ui_language():
     save_button.config(text=lang["save_button"])
     back_button.config(text=lang["back_button"])
     language_button.config(text=lang["language_button"])
+    default_text_button.config(text=lang["default_text_button"])  # Update button text
 
 def toggle_language():
     # Switching between English and Slovak languages / Prepnúť medzi anglickým a slovenským jazykom
@@ -129,7 +132,6 @@ def fastalign_mock(text1, text2):
         aligned_lines.append(f"{s1} | {s2}")
 
     return "Aligned text:\n" + "\n".join(aligned_lines)
-
 
 def save_results():
     # Save the alignment results / Uložiť výsledky zarovnania
