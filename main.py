@@ -13,6 +13,7 @@ from rake_nltk import Rake
 import yake
 import threading
 import gc
+import string
 
 # Global variable for stop words / Globálna premenná pre stop slová
 stop_words_extract = None
@@ -24,7 +25,7 @@ nltk.download('wordnet')
 nltk.download('averaged_perceptron_tagger')
 
 # Loading the spaCy model / Načítanie modelu spaCy
-nlp = spacy.load("en_core_web_sm")
+nlp = spacy.load(r'C:\Users\dmitr\AppData\Local\Programs\Python\Python311\Lib\site-packages\en_core_web_sm\en_core_web_sm-3.8.0')
 
 # Initialization of text processing tools / Inicializácia nástrojov na spracovanie textu
 lemmatizer = WordNetLemmatizer()
@@ -215,15 +216,19 @@ def tokenize_text():
 
 # Function to segment text / Funkcia na segmentáciu textu
 def segment_text():
-    input_text = text_input.get("1.0", tk.END)
-    input_text = clean_text(input_text, var_remove_urls.get())
-    sentences = sent_tokenize(input_text)
+    input_text = text_input.get("1.0", tk.END).strip()  # Убираем пробелы в начале/конце
+    sentences = sent_tokenize(input_text)  # Разделяем на предложения
 
     if var_remove_stopwords.get():
-        sentences = [" ".join([word for word in word_tokenize(sentence) if word not in stop_words]) for sentence in sentences]
+        filtered_sentences = []
+        for sentence in sentences:
+            words = word_tokenize(sentence)  # Токенизация
+            words = [word for word in words if word.lower() not in stop_words or word in string.punctuation]
+            filtered_sentences.append(" ".join(words))
+        sentences = filtered_sentences
 
     text_output.delete("1.0", tk.END)
-    text_output.insert(tk.END, "Sentences:\n" + "\n".join(sentences))
+    text_output.insert(tk.END, "Sentences:\n\n" + "\n\n".join(sentences))
 
 # Function to get POS tags / Funkcia na získanie POS značiek
 def pos_tags():
