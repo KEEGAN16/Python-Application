@@ -131,6 +131,20 @@ def toggle_language():
     current_language = "Slovak" if current_language == "English" else "English"
     update_ui_language()
 
+# Function to change button color when clicked / Funkcia na zmenu farby tlačidla po kliknutí
+def change_button_color(button, color):
+    button.config(bg=color)
+
+# Function to reset button colors / Funkcia na resetovanie farieb tlačidiel
+def reset_button_colors():
+    buttons = [
+        btn_tokenize, btn_segment, btn_pos_tags, btn_normalize, btn_process,
+        btn_extract_keywords, btn_extract_keyphrases, btn_align_text
+    ]
+    default_color = "#90ee90"
+    for button in buttons:
+        button.config(bg=default_color)
+
 # Function to open align window / Funkcia na otvorenie okna zarovnania
 def open_align_window():
     subprocess.Popen(["python", "align_text_window.py"])
@@ -167,6 +181,7 @@ def extract_keyphrases(text, num_keyphrases=10):
 
 # Function to handle keyword extraction UI / Funkcia na obsluhu UI pre extrakciu kľúčových slov
 def extract_keywords_ui():
+    reset_button_colors()
     input_text = text_input.get("1.0", tk.END).strip()
     if not input_text:
         messagebox.showerror(translations[current_language]["error"], translations[current_language]["no_text_error"])
@@ -180,8 +195,11 @@ def extract_keywords_ui():
     text_output.delete("1.0", tk.END)
     text_output.insert(tk.END, translations[current_language]["keywords_output"] + ":\n" + ", ".join(keywords))
 
+    change_button_color(btn_extract_keywords, "#d3d3d3")
+
 # Function to handle keyphrase extraction UI / Funkcia na obsluhu UI pre extrakciu kľúčových fráz
 def extract_keyphrases_ui():
+    reset_button_colors()
     input_text = text_input.get("1.0", tk.END).strip()
     if not input_text:
         messagebox.showerror(translations[current_language]["error"], translations[current_language]["no_text_error"])
@@ -195,6 +213,8 @@ def extract_keyphrases_ui():
     text_output.delete("1.0", tk.END)
     text_output.insert(tk.END, translations[current_language]["keyphrases_output"] + ":\n" + "\n".join(keyphrases))
 
+    change_button_color(btn_extract_keyphrases, "#d3d3d3")
+
 # Function to clean text / Funkcia na čistenie textu
 def clean_text(text, remove_urls=False):
     if remove_urls:
@@ -204,6 +224,7 @@ def clean_text(text, remove_urls=False):
 
 # Function to tokenize text / Funkcia na tokenizáciu textu
 def tokenize_text():
+    reset_button_colors()
     input_text = text_input.get("1.0", tk.END)
     input_text = clean_text(input_text, var_remove_urls.get())
     tokens = word_tokenize(input_text)
@@ -214,15 +235,18 @@ def tokenize_text():
     text_output.delete("1.0", tk.END)
     text_output.insert(tk.END, "Tokens:\n" + ", ".join(tokens))
 
+    change_button_color(btn_tokenize, "#d3d3d3")
+
 # Function to segment text / Funkcia na segmentáciu textu
 def segment_text():
-    input_text = text_input.get("1.0", tk.END).strip()  # Убираем пробелы в начале/конце
-    sentences = sent_tokenize(input_text)  # Разделяем на предложения
+    reset_button_colors()
+    input_text = text_input.get("1.0", tk.END).strip()
+    sentences = sent_tokenize(input_text)
 
     if var_remove_stopwords.get():
         filtered_sentences = []
         for sentence in sentences:
-            words = word_tokenize(sentence)  # Токенизация
+            words = word_tokenize(sentence)
             words = [word for word in words if word.lower() not in stop_words or word in string.punctuation]
             filtered_sentences.append(" ".join(words))
         sentences = filtered_sentences
@@ -230,8 +254,11 @@ def segment_text():
     text_output.delete("1.0", tk.END)
     text_output.insert(tk.END, "Sentences:\n\n" + "\n\n".join(sentences))
 
+    change_button_color(btn_segment, "#d3d3d3")
+
 # Function to get POS tags / Funkcia na získanie POS značiek
 def pos_tags():
+    reset_button_colors()
     input_text = text_input.get("1.0", tk.END)
     input_text = clean_text(input_text, var_remove_urls.get())
     doc = nlp(input_text)
@@ -239,8 +266,11 @@ def pos_tags():
     text_output.delete("1.0", tk.END)
     text_output.insert(tk.END, "POS Tags:\n" + "\n".join(result))
 
+    change_button_color(btn_pos_tags, "#d3d3d3")
+
 # Function to normalize text / Funkcia na normalizáciu textu
 def normalize_text():
+    reset_button_colors()
     input_text = text_input.get("1.0", tk.END).strip()
     if not input_text:
         return
@@ -253,8 +283,11 @@ def normalize_text():
     text_output.delete("1.0", tk.END)
     text_output.insert(tk.END, "Normalized Text:\n" + " ".join(normalized_tokens))
 
+    change_button_color(btn_normalize, "#d3d3d3")
+
 # Function to lemmatize or stem text / Funkcia na lematizáciu alebo stemming textu
 def lemmatize_or_stem_text():
+    reset_button_colors()
     input_text = text_input.get("1.0", tk.END)
     input_text = clean_text(input_text, var_remove_urls.get())
     technique = technique_choice.get()
@@ -283,6 +316,8 @@ def lemmatize_or_stem_text():
 
     text_output.delete("1.0", tk.END)
     text_output.insert(tk.END, f"{technique} Result:\n" + ", ".join(processed_tokens))
+
+    change_button_color(btn_process, "#d3d3d3")
 
 # Function to get WordNet POS tag / Funkcia na získanie WordNet POS značky
 def get_wordnet_pos(treebank_tag):
